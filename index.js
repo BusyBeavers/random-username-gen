@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { faker } from "@faker-js/faker";
 
 const PORT = process.env.PORT || 5001;
 
@@ -12,21 +13,23 @@ app.listen(PORT, () => {
   console.log(`Server listening on port: ${PORT}`);
 });
 
-app.get("/username", async (req, res) => {
-  try {
-    const response = await fetch("https://randomuser.me/api/");
-    const data = await response.json();
+app.get("/username", (req, res) => {
+  const maxLen = req.query.maxLen ? parseInt(req.query.maxLen) : null;
 
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .json({ error: "Failed to fetch data from randomuser.me" });
+  let username = faker.internet.username();
+
+  if (maxLen) {
+    let attempts = 0;
+    while (username.length > maxLen && attempts < 100) {
+      username = faker.internet.username();
+      attempts++;
     }
 
-    const user = data.results[0].login;
-    return res.json({ username: user.username });
-  } catch (err) {
-    console.error("Error fetching random username:", err);
-    return res.status(500).json({ error: "Server error" });
+    // fallback: truncate if no short enough username was found
+    if (username.length > maxLen) {
+      username = username.slice(0, maxLen);
+    }
   }
+
+  return res.json({ username });
 });
