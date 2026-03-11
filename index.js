@@ -3,6 +3,7 @@ import cors from "cors";
 import { faker } from "@faker-js/faker";
 
 const PORT = process.env.PORT || 5001;
+const DEFAULT_MAX_LEN = 20;
 
 const app = express();
 
@@ -14,20 +15,25 @@ app.listen(PORT, () => {
 });
 
 app.get("/username", (req, res) => {
-  const maxLen = req.query.maxLen ? parseInt(req.query.maxLen) : null;
+  const maxLen = parseInt(req.query.maxLen);
+  if (req.query.maxLen !== undefined && (isNaN(maxLen) || maxLen <= 0)) {
+    res.status(400).json({ error: "maxLen must be a positive integer" });
+    return;
+  }
+  const effectiveMaxLen = isNaN(maxLen) ? DEFAULT_MAX_LEN : maxLen;
 
   let username = faker.internet.username();
 
-  if (maxLen) {
+  if (effectiveMaxLen) {
     let attempts = 0;
-    while (username.length > maxLen && attempts < 100) {
+    while (username.length > effectiveMaxLen && attempts < 100) {
       username = faker.internet.username();
       attempts++;
     }
 
     // fallback: truncate if no short enough username was found
-    if (username.length > maxLen) {
-      username = username.slice(0, maxLen);
+    if (username.length > effectiveMaxLen) {
+      username = username.slice(0, effectiveMaxLen);
     }
   }
 
